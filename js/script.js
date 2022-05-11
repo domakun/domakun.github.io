@@ -206,7 +206,6 @@ const keyup = e => {
         input.value = '';
         runPrompt = false;
     }
-    ;
     onInputChange();
 };
 
@@ -221,15 +220,32 @@ const addPrompt = i => {
     }, TIME_GAP);
 };
 
+function isMobile() {
+    const MOBILE_FILTER = /(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i
+    if (navigator.userAgent.match(MOBILE_FILTER)) {
+        // 使用正则匹配，判定机器是否为手机端
+        return true
+    }
+    const windowWidth = window.screen.width
+    const documentWidth = document.body.clientWidth
+    // 根据屏幕尺寸判定机器是否为手机端
+    return windowWidth == documentWidth && documentWidth < 600;
+}
 
-resizePage();
-window.addEventListener('resize', resizePage);
-input.addEventListener('keyup', keyup);
-input.focus();
+window.onload = () => {
+// 判定客户端类型
+    if (isMobile()) {
+        document.querySelector('body').className = 'mobile'
+    }
+    resizePage();
+    window.addEventListener('resize', resizePage);
+    input.addEventListener('keyup', keyup);
+    input.focus();
 // text 动画
-addPrompt(0);
+    addPrompt(0);
 // ip 动画
-setTimeout(() => {
-    document.getElementById('image-container').style.maxHeight = '100%'
-}, TIME_GAP * (prompt.length + 2))
+    setTimeout(() => {
+        document.getElementById('image-container').style.maxHeight = '100%'
+    }, TIME_GAP * (prompt.length + 2))
 
+}
