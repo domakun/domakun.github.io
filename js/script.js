@@ -1,137 +1,235 @@
-(function($){
-  // Search
-  var $searchWrap = $('#search-form-wrap'),
-    isSearchAnim = false,
-    searchAnimDuration = 200;
+const selectSVG = id => {
+    const el = document.getElementById(id);
+    return new SVGElement(el);
+};
 
-  var startSearchAnim = function(){
-    isSearchAnim = true;
-  };
+const createSVG = type => {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', type);
+    return new SVGElement(el);
+};
 
-  var stopSearchAnim = function(callback){
-    setTimeout(function(){
-      isSearchAnim = false;
-      callback && callback();
-    }, searchAnimDuration);
-  };
-
-  $('#nav-search-btn').on('click', function(){
-    if (isSearchAnim) return;
-
-    startSearchAnim();
-    $searchWrap.addClass('on');
-    stopSearchAnim(function(){
-      $('.search-form-input').focus();
-    });
-  });
-
-  $('.search-form-input').on('blur', function(){
-    startSearchAnim();
-    $searchWrap.removeClass('on');
-    stopSearchAnim();
-  });
-
-  // Share
-  $('body').on('click', function(){
-    $('.article-share-box.on').removeClass('on');
-  }).on('click', '.article-share-link', function(e){
-    e.stopPropagation();
-
-    var $this = $(this),
-      url = $this.attr('data-url'),
-      encodedUrl = encodeURIComponent(url),
-      id = 'article-share-box-' + $this.attr('data-id'),
-      offset = $this.offset();
-
-    if ($('#' + id).length){
-      var box = $('#' + id);
-
-      if (box.hasClass('on')){
-        box.removeClass('on');
-        return;
-      }
-    } else {
-      var html = [
-        '<div id="' + id + '" class="article-share-box">',
-          '<input class="article-share-input" value="' + url + '">',
-          '<div class="article-share-links">',
-            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
-            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
-            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="article-share-pinterest" target="_blank" title="Pinterest"></a>',
-            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="article-share-google" target="_blank" title="Google+"></a>',
-          '</div>',
-        '</div>'
-      ].join('');
-
-      var box = $(html);
-
-      $('body').append(box);
+class SVGElement {
+    constructor(element) {
+        this.element = element;
     }
 
-    $('.article-share-box.on').hide();
+    set(attributeName, value) {
+        this.element.setAttribute(attributeName, value);
+    }
 
-    box.css({
-      top: offset.top + 25,
-      left: offset.left
-    }).addClass('on');
-  }).on('click', '.article-share-box', function(e){
-    e.stopPropagation();
-  }).on('click', '.article-share-box-input', function(){
-    $(this).select();
-  }).on('click', '.article-share-box-link', function(e){
-    e.preventDefault();
-    e.stopPropagation();
+    style(property, value) {
+        this.element.style[property] = value;
+    }
+}
 
-    window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
-  });
 
-  // Caption
-  $('.article-entry').each(function(i){
-    $(this).find('img').each(function(){
-      if ($(this).parent().hasClass('fancybox')) return;
+const colors = [
+    {main: '#FBDB4A', shades: ['#FAE073', '#FCE790', '#FADD65', '#E4C650']},
+    {main: '#F3934A', shades: ['#F7B989', '#F9CDAA', '#DD8644', '#F39C59']},
+    {main: '#EB547D', shades: ['#EE7293', '#F191AB', '#D64D72', '#C04567']},
+    {main: '#9F6AA7', shades: ['#B084B6', '#C19FC7', '#916198', '#82588A']},
+    {main: '#5476B3', shades: ['#6382B9', '#829BC7', '#4D6CA3', '#3E5782']},
+    {main: '#2BB19B', shades: ['#4DBFAD', '#73CDBF', '#27A18D', '#1F8171']},
+    {main: '#70B984', shades: ['#7FBE90', '#98CBA6', '#68A87A', '#5E976E']}];
 
-      var alt = this.alt;
+const svg = selectSVG('svg');
+const text = document.getElementById('text');
+const offscreenText = document.getElementById('offscreen-text');
+const input = document.getElementById('input');
+let width = window.innerWidth;
+let height = window.innerHeight;
+let textSize = 0;
+let textCenter = 0;
+const letters = [];
+// const prompt = ['H', 'A', 'P', 'P', 'Y', ' ', 'B', 'I', 'R', 'T', 'H', 'D', 'A', 'Y', ' ', 'T', 'O', ' ', 'C', 'A', 'N', 'P', 'O', 'I', 'N', 'T'];
+const prompt = ['C', 'A', 'N', 'P', 'O', 'I', 'N', 'T'];
+let runPrompt = true;
 
-      if (alt) $(this).after('<span class="caption">' + alt + '</span>');
+const resizePage = () => {
+    width = window.innerWidth - 200;
+    height = window.innerHeight;
+    svg.set('height', height);
+    svg.set('width', width);
+    svg.set('viewBox', `0 0 ${width} ${height}`);
+    resizeLetters();
+};
 
-      $(this).wrap('<a href="' + this.src + '" title="' + alt + '" class="fancybox"></a>');
+const resizeLetters = () => {
+    textSize = width / (letters.length + 2);
+    if (textSize > 100) textSize = 100;
+    text.style.fontSize = `${textSize}px`;
+    text.style.height = `${textSize}px`;
+    text.style.lineHeight = `${textSize}px`;
+    offscreenText.style.fontSize = `${textSize}px`;
+    const textRect = text.getBoundingClientRect();
+    textCenter = textRect.top + textRect.height / 2;
+    positionLetters();
+};
+
+const positionLetters = () => {
+    letters.forEach(letter => {
+        const timing = letter.shift ? 0.1 : 0;
+        TweenLite.to(letter.onScreen, timing, {x: letter.offScreen.offsetLeft + 'px', ease: Power3.easeInOut});
+        letter.shift = true;
     });
+};
 
-    $(this).find('.fancybox').each(function(){
-      $(this).attr('rel', 'article' + i);
+const animateLetterIn = letter => {
+    const yOffset = (0.5 + Math.random() * 0.5) * textSize;
+    TweenLite.fromTo(letter, 0.4, {scale: 0}, {scale: 1, ease: Back.easeOut});
+    TweenLite.fromTo(letter, 0.4, {opacity: 0}, {opacity: 1, ease: Power3.easeOut});
+    TweenLite.to(letter, 0.2, {y: -yOffset, ease: Power3.easeInOut});
+    TweenLite.to(letter, 0.2, {y: 0, ease: Power3.easeInOut, delay: 0.2});
+    const rotation = -50 + Math.random() * 100;
+    TweenLite.to(letter, 0.2, {rotation: rotation, ease: Power3.easeInOut});
+    TweenLite.to(letter, 0.2, {rotation: 0, ease: Power3.easeInOut, delay: 0.2});
+};
+
+const addDecor = (letter, color) => {
+    setTimeout(() => {
+        var rect = letter.getBoundingClientRect();
+        const x0 = letter.offsetLeft + letter.offsetWidth / 2;
+        const y0 = textCenter - textSize * 0.5;
+        const shade = color.shades[Math.floor(Math.random() * 4)];
+        for (var i = 0; i < 8; i++) addTri(x0, y0, shade);
+        for (var i = 0; i < 8; i++) addCirc(x0, y0);
+    }, 150);
+};
+
+const addTri = (x0, y0, shade) => {
+    const tri = createSVG('polygon');
+    const a = Math.random();
+    const a2 = a + (-0.2 + Math.random() * 0.4);
+    const r = textSize * 0.52;
+    const r2 = r + textSize * Math.random() * 0.2;
+    const x = x0 + r * Math.cos(2 * Math.PI * a);
+    const y = y0 + r * Math.sin(2 * Math.PI * a);
+    const x2 = x0 + r2 * Math.cos(2 * Math.PI * a2);
+    const y2 = y0 + r2 * Math.sin(2 * Math.PI * a2);
+    const triSize = textSize * 0.1;
+    const scale = 0.3 + Math.random() * 0.7;
+    const offset = triSize * scale;
+    tri.set('points', `0,0 ${triSize * 2},0 ${triSize},${triSize * 2}`);
+    tri.style('fill', shade);
+    svg.element.appendChild(tri.element);
+    TweenLite.fromTo(tri.element, 0.6, {
+        rotation: Math.random() * 360,
+        scale: scale,
+        x: x - offset,
+        y: y - offset,
+        opacity: 1
+    }, {
+        x: x2 - offset, y: y2 - offset, opacity: 0, ease: Power1.easeInOut, onComplete: () => {
+            svg.element.removeChild(tri.element);
+        }
     });
-  });
+};
 
-  if ($.fancybox){
-    $('.fancybox').fancybox();
-  }
+const addCirc = (x0, y0) => {
+    const circ = createSVG('circle');
+    const a = Math.random();
+    const r = textSize * 0.52;
+    const r2 = r + textSize;
+    const x = x0 + r * Math.cos(2 * Math.PI * a);
+    const y = y0 + r * Math.sin(2 * Math.PI * a);
+    const x2 = x0 + r2 * Math.cos(2 * Math.PI * a);
+    const y2 = y0 + r2 * Math.sin(2 * Math.PI * a);
+    const circSize = textSize * 0.05 * Math.random();
+    circ.set('r', circSize);
+    circ.style('fill', '#eee');
+    svg.element.appendChild(circ.element);
+    TweenLite.fromTo(circ.element, 0.6, {x: x - circSize, y: y - circSize, opacity: 1}, {
+        x: x2 - circSize, y: y2 - circSize, opacity: 0, ease: Power1.easeInOut, onComplete: () => {
+            svg.element.removeChild(circ.element);
+        }
+    });
+};
 
-  // Mobile nav
-  var $container = $('#container'),
-    isMobileNavAnim = false,
-    mobileNavAnimDuration = 200;
+const addLetter = (char, i) => {
+    const letter = document.createElement('span');
+    const oLetter = document.createElement('span');
+    letter.innerHTML = char;
+    oLetter.innerHTML = char;
+    text.appendChild(letter);
+    const color = colors[i % colors.length];
+    letter.style.color = color.main;
+    offscreenText.appendChild(oLetter);
+    letters[i] = {offScreen: oLetter, onScreen: letter, char: char};
+    animateLetterIn(letter);
+    addDecor(oLetter, color);
+};
 
-  var startMobileNavAnim = function(){
-    isMobileNavAnim = true;
-  };
+const addLetters = value => {
+    value.forEach((char, i) => {
+        if (letters[i] && letters[i].char !== char) {
+            letters[i].onScreen.innerHTML = char;
+            letters[i].offScreen.innerHTML = char;
+            letters[i].char = char;
+        }
+        if (letters[i] === undefined) {
+            addLetter(char, i);
+        }
+    });
+};
 
-  var stopMobileNavAnim = function(){
-    setTimeout(function(){
-      isMobileNavAnim = false;
-    }, mobileNavAnimDuration);
-  }
+const animateLetterOut = (letter, i) => {
+    TweenLite.to(letter.onScreen, 0.1, {
+        scale: 0, opacity: 0, ease: Power2.easeIn, onComplete: () => {
+            console.log('removing');
+            console.log(letter);
+            offscreenText.removeChild(letter.offScreen);
+            text.removeChild(letter.onScreen);
+            positionLetters();
+        }
+    });
+    letters.splice(i, 1);
+};
 
-  $('#main-nav-toggle').on('click', function(){
-    if (isMobileNavAnim) return;
+const removeLetters = value => {
+    for (let i = letters.length - 1; i >= 0; i--) {
+        const letter = letters[i];
+        if (value[i] === undefined) {
+            animateLetterOut(letter, i);
+        }
+    }
+};
 
-    startMobileNavAnim();
-    $container.toggleClass('mobile-nav-on');
-    stopMobileNavAnim();
-  });
+const onInputChange = () => {
+    const value = input.value === '' ? [] : input.value.toLowerCase().split('');
+    addLetters(value);
+    removeLetters(value);
+    resizeLetters();
+};
 
-  $('#wrap').on('click', function(){
-    if (isMobileNavAnim || !$container.hasClass('mobile-nav-on')) return;
+const keyup = e => {
+    if (runPrompt) {
+        input.value = '';
+        runPrompt = false;
+    }
+    ;
+    onInputChange();
+};
 
-    $container.removeClass('mobile-nav-on');
-  });
-})(jQuery);
+const TIME_GAP = 300
+const addPrompt = i => {
+    setTimeout(() => {
+        if (runPrompt && prompt[i]) {
+            input.value = input.value + prompt[i];
+            onInputChange();
+            addPrompt(i + 1);
+        }
+    }, TIME_GAP);
+};
+
+
+resizePage();
+window.addEventListener('resize', resizePage);
+input.addEventListener('keyup', keyup);
+input.focus();
+// text 动画
+addPrompt(0);
+// ip 动画
+setTimeout(() => {
+    document.getElementById('image-container').style.maxHeight = '100%'
+}, TIME_GAP * (prompt.length + 2))
+
